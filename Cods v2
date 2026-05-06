@@ -1,0 +1,673 @@
+1️⃣ VLAN, Access/Trunk, Eth-Trunk, MSTP
+
+🔹 A1 коммутаторы
+
+system-view
+sysname A1
+vlan batch 50 111 112 43 100 200
+interface Ethernet0/0/1
+port link-type access
+port default vlan 111
+quit
+interface Ethernet0/0/2
+port link-type access
+port default vlan 112
+quit
+interface g0/0/1
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/2
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface Ethernet0/0/22
+port link-type trunk
+port trunk pvid vlan 43
+port trunk allow-pass vlan 43 100 200
+quit
+🔹 A2 коммутаторы (A1-мен бірдей, тек хост аты өзгереді)
+
+undo terminal monitor
+system-view
+sysname A2
+vlan batch 50 111 112 43 100 200
+interface Ethernet0/0/1
+port link-type access
+port default vlan 111
+quit
+interface Ethernet0/0/2
+port link-type access
+port default vlan 112
+quit
+interface g0/0/1
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/2
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface Ethernet0/0/22
+port link-type trunk
+port trunk pvid vlan 43
+port trunk allow-pass vlan 43 100 200
+quit
+🔹 D1 коммутаторы
+
+undo terminal monitor
+system-view
+sysname D1
+vlan batch 50 111 112 43 100 200
+interface g0/0/1
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/2
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/24
+port link-type trunk
+port trunk allow-pass vlan 43 100 200
+quit
+interface Eth-Trunk 1
+mode lacp-static
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/3
+eth-trunk 1
+quit
+interface g0/0/4
+eth-trunk 1
+quit
+stp region-configuration
+region-name HQ1
+revision-level 1
+instance 1 vlan 111
+instance 2 vlan 112
+instance 3 vlan 50
+active region-configuration
+quit
+stp instance 1 root primary
+stp instance 3 root primary
+stp instance 2 root secondary
+ 
+display stp brief
+display eth-trunk 1
+🔹 D2 коммутаторы
+
+undo terminal monitor
+system-view
+sysname D2
+vlan batch 50 111 112 43 100 200
+interface g0/0/1
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/2
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+Quit
+interface g0/0/24
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+Quit
+interface Eth-Trunk 1
+mode lacp-static
+port link-type trunk
+port trunk allow-pass vlan 50 111 112 43 100 200
+quit
+interface g0/0/3
+eth-trunk 1
+quit
+interface g0/0/4
+eth-trunk 1
+quit
+stp region-configuration
+region-name HQ1
+revision-level 1
+instance 1 vlan 111
+instance 2 vlan 112
+instance 3 vlan 50
+active region-configuration
+quit
+stp instance 2 root primary
+stp instance 1 root secondary
+stp instance 3 root secondary
+ 
+2️⃣ VRRP
+
+🔹 D1
+
+interface vlanif 50
+ip address 10.1.50.1 24
+vrrp vrid 50 virtual-ip 10.1.50.254
+vrrp vrid 50 priority 105
+Quit
+ 
+interface vlanif 111
+ip address 172.16.111.1 24
+vrrp vrid 111 virtual-ip 172.16.111.254
+vrrp vrid 111 priority 105
+Quit
+ 
+interface vlanif 112
+ip address 172.16.112.1 24
+vrrp vrid 112 virtual-ip 172.16.112.254
+Quit
+ 
+display vrrp brief
+display ip interface brief
+🔹 D2
+
+interface vlanif 50
+ip address 10.1.50.2 24
+vrrp vrid 50 virtual-ip 10.1.50.254
+quit
+interface vlanif 111
+ip address 172.16.111.2 24
+vrrp vrid 111 virtual-ip 172.16.111.254
+quit
+interface vlanif 112
+ip address 172.16.112.2 24
+vrrp vrid 112 virtual-ip 172.16.112.254
+vrrp vrid 112 priority 105
+quit
+ 
+3️⃣ Single-Area OSPF
+
+🔹 D1
+
+interface vlanif 1
+ip address 10.1.1.106 30
+quit
+interface Loopback 50
+ip address 50.3.3.3 32
+quit
+ 
+ospf 1 router-id 50.3.3.3
+area 0
+ network 10.1.1.104 0.0.0.3
+ network 172.16.111.0 0.0.0.255
+ network 172.16.112.0 0.0.0.255
+ network 10.1.50.0 0.0.0.255
+ network 192.168.100.0 0.0.0.255
+ network 192.168.200.0 0.0.0.255
+ network 50.3.3.3 0.0.0.0
+quit
+
+🔹 D2
+
+interface vlanif 1
+ip address 10.1.1.110 30
+quit
+interface Loopback 50
+ip address 50.4.4.4 32
+quit
+ 
+ospf 1 router-id 50.4.4.4
+area 0
+ network 10.1.1.108 0.0.0.3
+ network 172.16.111.0 0.0.0.255
+ network 172.16.112.0 0.0.0.255
+ network 10.1.50.0 0.0.0.255
+ network 192.168.100.0 0.0.0.255
+ network 192.168.200.0 0.0.0.255
+ network 50.4.4.4 0.0.0.0
+quit
+
+🔹 C1
+
+system-view
+sysname C1
+ 
+interface G0/0/0
+ip address 10.1.1.102 30
+quit
+interface G0/0/1
+ip address 10.1.1.105 30
+quit
+interface G0/0/2
+ip address 10.1.1.109 30
+quit
+interface G0/0/3
+ip address 10.10.10.1 24
+quit
+ 
+interface Loopback 50
+ip address 50.2.2.2 32
+quit
+ 
+ospf 1 router-id 50.2.2.2
+area 0
+ network 10.1.1.100 0.0.0.3
+ network 10.1.1.104 0.0.0.3
+ network 10.1.1.108 0.0.0.3
+ network 10.10.10.0 0.0.0.255
+ network 50.2.2.2 0.0.0.0
+quit
+
+🔹 EdgR1
+
+system-view
+sysname EdgR1
+ 
+interface G0/0/0
+ip address 10.1.1.101 30
+quit
+interface G0/0/2
+ip address 172.16.128.1 24
+quit
+interface G0/0/1
+ip address 192.168.137.254 24
+quit
+interface Loopback 50
+ip address 50.1.1.1 32
+quit
+ 
+ospf 1 router-id 50.1.1.1
+area 0
+ network 10.1.1.100 0.0.0.3
+ network 172.16.128.0 0.0.0.255
+ network 50.1.1.1 0.0.0.0
+ network 192.168.137.0 0.0.0.255
+quit
+ 
+display ospf peer brief
+
+🔹 DHCP Server (OSPF үшін)
+
+system-view
+sysname DHCP
+ 
+interface G0/0/0
+ip address 172.16.128.67 24
+quit
+interface Loopback 50
+ip address 50.5.5.5 32
+quit
+ 
+ospf 1 router-id 50.5.5.5
+area 0
+ network 172.16.128.0 0.0.0.255
+ network 50.5.5.5 0.0.0.0
+quit
+
+ 
+4️⃣ DHCP
+
+dhcp enable
+ 
+ip pool VLAN111
+network 172.16.111.0 mask 24
+gateway-list 172.16.111.254
+dns-list 172.16.128.69
+excluded-ip-address 172.16.111.1 172.16.111.10
+excluded-ip-address 172.16.111.251 172.16.111.253
+lease day 5
+quit
+ 
+ip pool VLAN112
+network 172.16.112.0 mask 24
+gateway-list 172.16.112.254
+dns-list 172.16.128.69
+excluded-ip-address 172.16.112.1 172.16.112.10
+excluded-ip-address 172.16.112.251 172.16.112.253
+lease day 5
+quit
+ 
+interface G0/0/0
+dhcp select global
+quit
+
+🔹 D1 және D2 (DHCP Relay)
+
+# D1
+dhcp enable
+interface vlanif 111
+dhcp select relay
+dhcp relay server-ip 172.16.128.67
+quit
+interface vlanif 112
+dhcp select relay
+dhcp relay server-ip 172.16.128.67
+quit
+ 
+# D2 (дәл солай)
+dhcp enable
+interface vlanif 111
+dhcp select relay
+dhcp relay server-ip 172.16.128.67
+quit
+interface vlanif 112
+dhcp select relay
+dhcp relay server-ip 172.16.128.67
+quit
+🔹 D1 (Staff және Guest үшін жергілікті DHCP)
+
+ip pool Staff
+network 192.168.100.0 mask 24
+gateway-list 192.168.100.254
+dns-list 8.8.8.8
+option 43 sub-option 2 ip-address 10.1.43.254
+excluded-ip-address 192.168.100.1 192.168.100.10
+excluded-ip-address 192.168.100.251 192.168.100.253
+lease day 5
+quit
+ 
+ip pool Guest
+network 192.168.200.0 mask 24
+gateway-list 192.168.200.254
+dns-list 8.8.8.8
+option 43 sub-option 2 ip-address 10.1.43.254
+excluded-ip-address 192.168.200.1 192.168.200.10
+excluded-ip-address 192.168.200.251 192.168.200.253
+lease day 5
+Quit
+ 
+ip pool AP
+network 10.1.43.0 mask 24
+gateway-list 10.1.43.254
+option 43 hex f1040a012bfe
+excluded-ip-address 10.1.43.1 10.1.43.100
+excluded-ip-address 10.1.43.201 10.1.43.253
+lease day 5
+Quit
+ 
+interface vlanif 100
+ip address 192.168.100.254 24
+dhcp select global
+quit
+interface vlanif 200
+ip address 192.168.200.254 24
+dhcp select global
+quit
+
+ 
+ 
+5️⃣ NAT (Easy IP)
+
+🔹 EdgR1
+
+acl 2000
+rule permit source 172.16.111.0 0.0.0.255
+rule permit source 172.16.112.0 0.0.0.255
+rule permit source 192.168.137.0 0.0.0.255
+rule permit source 10.1.1.0 0.0.0.3
+rule permit source 172.16.128.0 0.0.0.255
+quit
+ 
+interface G0/0/1
+nat outbound 2000
+quit
+ 
+ip route-static 0.0.0.0 0.0.0.0 192.168.137.1
+ 
+ospf 1
+default-route-advertise
+quit
+ 
+display nat session all verbose
+
+ 
+6️⃣ Remote Access (SSH/Telnet) – Барлық құрылғыларда бірдей
+
+📌 A1
+
+interface vlanif 50
+ip address 10.1.50.101 24
+quit
+ip route-static 0.0.0.0 0.0.0.0 10.1.50.254
+📌 A2
+
+interface vlanif 50
+ip address 10.1.50.102 24
+quit
+ip route-static 0.0.0.0 0.0.0.0 10.1.50.254
+Келесі командаларды EdgR1, C1, D1, D2, A1, A2, DHCP Server-де орындаңыз.
+
+aaa
+local-user student password cipher Huawei@123
+local-user student service-type terminal ssh telnet
+local-user student privilege level 15
+quit
+ 
+ssh user student authentication-type password
+ssh user student service-type stelnet
+ 
+stelnet server enable
+telnet server enable
+ 
+rsa local-key-pair create
+ 
+User-int vty 0 4
+Authentication-mode aaa
+Protocol inbound all
+q
+Қосымша (источник интерфейсті шектеу):
+
+● D1/D2/C1/DHCP/EdgR1: ssh server permit interface LoopBack 50
+● A1/A2: ssh server permit interface Vlanif 50 (немесе ssh server-source -i vlanif 50)
+Тексеру:
+
+stelnet 50.3.3.3
+telnet 10.1.50.101
+
+ 
+7️⃣ DNS және HTTP
+
+🔹 Ubuntu Server (172.16.128.69)
+
+DNS (BIND9):
+
+sudo apt update && sudo apt install -y bind9
+sudo nano /etc/bind/named.conf.local
+
+zone "lab.local" {
+   type master;
+   file "/etc/bind/db.lab.local";
+};
+
+sudo cp /etc/bind/db.local /etc/bind/db.lab.local
+sudo nano /etc/bind/db.lab.local
+
+$TTL 604800
+@   IN  SOA lab.local. root.lab.local. (1 604800 86400 2419200 604800)
+@   IN  NS  lab.local.
+@   IN  A   172.16.128.69
+www IN  A   172.16.128.69
+
+sudo systemctl restart bind9
+
+HTTP (Apache):
+
+sudo apt install -y apache2
+sudo mkdir -p /var/www/lab.local
+echo '<h1>Welcome to Almaty!</h1>' | sudo tee /var/www/lab.local/index.html
+sudo nano /etc/apache2/sites-available/lab.local.conf
+
+<VirtualHost 172.16.128.69:80>
+   ServerName lab.local
+   DocumentRoot /var/www/lab.local
+</VirtualHost>
+
+sudo a2ensite lab.local.conf
+sudo systemctl reload apache2
+
+🔹 Клиентте тексеру (PC1)
+
+ipconfig (172.16.111.11 алу керек)
+ping lab.local
+немесе браузерде http://lab.local (немесе http://172.16.128.69)
+
+ 
+8️⃣ FTP
+
+🔹 Ubuntu Server
+
+sudo apt install -y vsftpd
+sudo nano /etc/vsftpd.conf
+
+Өзгертулер:
+
+anonymous_enable=YES
+anon_root=/srv/ftp
+write_enable=YES
+anon_upload_enable=YES
+
+sudo mkdir -p /srv/ftp
+echo "Test file" | sudo tee /srv/ftp/file1.txt
+sudo systemctl restart vsftpd
+
+🔹 EdgR1-де тексеру
+
+ftp 172.16.128.69
+# Пайдаланушы: anonymous, пароль: бос
+dir
+get file1.txt
+bye
+
+ 
+9️⃣ TFTP
+
+🔹 Ubuntu Server
+
+sudo apt install -y tftpd-hpa tftp-hpa
+sudo nano /etc/default/tftpd-hpa
+
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/srv/tftp"
+TFTP_ADDRESS="172.16.128.69:69"
+TFTP_OPTIONS="--secure --create --listen --verbose"
+
+sudo systemctl restart tftpd-hpa
+sudo chown -R tftp:nogroup /srv/tftp
+sudo chmod -R 755 /srv/tftp
+
+🔹 EdgR1-де тексеру
+
+tftp 172.16.128.69 get f1.conf
+dir
+tftp 172.16.128.69 put vrpcfg.zip
+
+ 
+🔟 WLAN (AC1, AP1, AP2)
+
+🔹 AC1
+
+system-view
+sysname AC1
+ 
+vlan batch 43 100 200
+ 
+interface vlanif 43
+ip address 10.1.43.254 24
+Q
+ 
+capwap source interface Vlanif 43
+ 
+ip pool Staff
+network 192.168.100.0 mask 24
+gateway-list 192.168.100.254
+dns-list 8.8.8.8
+option 43 sub-option 2 ip-address 10.1.43.254
+excluded-ip-address 192.168.100.1 192.168.100.10
+excluded-ip-address 192.168.100.251 192.168.100.253
+lease day 5
+quit
+ 
+ip pool Guest
+network 192.168.200.0 mask 24
+gateway-list 192.168.200.254
+dns-list 8.8.8.8
+option 43 sub-option 2 ip-address 10.1.43.254
+excluded-ip-address 192.168.200.1 192.168.200.10
+excluded-ip-address 192.168.200.251 192.168.200.253
+lease day 5
+Quit
+ 
+ip pool AP
+network 10.1.43.0 mask 24
+gateway-list 10.1.43.254
+option 43 hex f1040a012bfe
+excluded-ip-address 10.1.43.1 10.1.43.100
+excluded-ip-address 10.1.43.201 10.1.43.253
+lease day 5
+Quit
+ 
+interface vlanif 43
+dhcp select global
+Q
+ 
+wlan
+regulatory-domain-profile name default
+country-code kz
+quit
+ 
+security-profile name WLAN-Staff
+security wpa-wpa2 psk pass-phrase Huawei@123 aes
+Quit
+ 
+security-profile name WLAN-Guest
+security wpa-wpa2 psk pass-phrase Huawei@123 aes
+quit
+ 
+ssid-profile name WLAN-Staff
+ssid Staff-WiFi
+Quit
+ 
+ssid-profile name WLAN-Guest
+ssid Guest-WiFi
+quit
+ 
+vap-profile name VAP-Staff
+forward-mode direct-forward
+service-vlan vlan-id 100
+ssid-profile WLAN-Staff
+security-profile WLAN-Staff
+quit
+vap-profile name VAP-Guest
+forward-mode direct-forward
+service-vlan vlan-id 200
+ssid-profile WLAN-Guest
+security-profile WLAN-Guest
+quit
+ 
+ap-group name ap-group1
+regulatory-domain-profile default
+vap-profile VAP-Staff wlan 1 radio all
+vap-profile VAP-Guest wlan 2 radio all
+quit
+ 
+ap auth-mode mac-auth
+ap-id 0 ap-mac 00e0-fc17-3630
+ap-name AP1
+ap-group ap-group1
+quit
+ap-id 1 ap-mac 00e0-fc56-68e0
+ap-name AP2
+ap-group ap-group1
+quit
+
+Тексеру:
+
+display ap all
+
+display station all
+
+ 
+🔄 Қосымша: NTP (EdgR1 – сервер, қалғандары – клиент)
+
+EdgR1-де:
+
+ntp-service enable
+ntp-service refclock-master 3
+
+Клиенттерде (C1, D1, D2, A1, A2, DHCP):
+
+ntp-service enable
+ntp-service unicast-server 172.16.128.69
+
+Ubuntu-да chrony орнатылған.
