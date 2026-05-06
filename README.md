@@ -1,8 +1,11 @@
 # Final_Lab
 1.Configure VLAN Create VLANs
 D1-D2
+
 vlan batch 50 111 112
+
 A1-A2
+
 vlan batch 43 50 111 112
 
 2.Access and Trunk Port
